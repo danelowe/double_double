@@ -41,10 +41,12 @@ shared_examples "it can run the README scenarios" do
 
     it 'should perform the REALISTIC SCENARIO correctly' do
       pending "TODO"
+      false.should eq true
     end
 
     it 'should perform the COMPLEX SCENARIO correctly' do
       pending "TODO"
+      false.should eq true
     end
   end
 end

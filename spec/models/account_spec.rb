@@ -74,5 +74,29 @@ module DoubleDouble
           credits: [{account: 600,     amount: 100_000}])
       Account.trial_balance.should eq(0)
     end
+
+    describe "Currency Support" do
+      context "No Chart of Accounts" do
+        let (:equity) { FactoryGirl.create(:equity,    name: 'equity acct') }
+        let (:expense) { FactoryGirl.create(:expense,   name: 'expense acct') }
+
+        it "uses the default currency" do
+          equity.currency.should eq Money.default_currency
+        end
+
+        it "saves the currency on the amounts" do
+
+        end
+      end
+
+      context "With a Chart of Accounts" do
+        let (:chart_of_accounts) { FactoryGirl.create(:chart_of_accounts, currency: 'NZD')}
+        let (:equity) { FactoryGirl.create(:equity,    name: 'equity acct', chart_of_accounts: chart_of_accounts) }
+        let (:expense) { FactoryGirl.create(:expense,   name: 'expense acct', chart_of_accounts: chart_of_accounts) }
+        it "uses the default currency" do
+          equity.currency.should eq Money::Currency.new('NZD')
+        end
+      end
+    end
   end
 end

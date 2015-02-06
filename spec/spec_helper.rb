@@ -9,13 +9,20 @@ ActiveRecord::Base.establish_connection(:adapter => "sqlite3", :database => ":me
 ActiveRecord::Migration.verbose = false
 @migration  = Class.new(ActiveRecord::Migration) do
   def change
+    create_table :double_double_charts_of_accounts do |t|
+      t.string  :code,          null: false
+      t.string  :currency,      null: false
+      t.string  :name,          null: false
+    end
     create_table :double_double_accounts do |t|
+      t.references :chart_of_accounts
       t.integer :number,        null: false
       t.string  :name,          null: false
       t.string  :type,          null: false
       t.boolean :contra,        default: false
     end
     add_index :double_double_accounts, [:name, :type]
+    add_index :double_double_accounts, :chart_of_accounts_id
 
     create_table :double_double_entries do |t|
       t.string :description

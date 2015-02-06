@@ -1,4 +1,9 @@
 module DoubleDouble
+  module AccountCollectionExtension
+    def balance
+      inject(Money.new(0)) {|sum, acct| acct.contra ? (sum - acct.balance) : (sum + acct.balance)}
+    end
+  end
   # The Account class represents accounts in the system. Each account must be subclassed as one of the following types:
   #
   #   TYPE        | NORMAL BALANCE    | DESCRIPTION
@@ -35,10 +40,17 @@ module DoubleDouble
     has_many :debit_amounts
     has_many :credit_entries, through: :credit_amounts, source: :entry
     has_many :debit_entries,  through: :debit_amounts,  source: :entry
+    belongs_to :chart_of_accounts
 
     validates_presence_of :type, :name, :number
     validates_uniqueness_of :name, :number
     validates_length_of :name, :minimum => 1
+
+    scope :assets,      -> { type_scope Asset }
+    scope :liabilities, -> { type_scope Liability }
+    scope :equities,    -> { type_scope Equity }
+    scope :revenues,    -> { type_scope Revenue }
+    scope :expenses,    -> { type_scope Expense }
 
     class << self
       # The trial balance of all accounts in the system. This should always equal zero,
@@ -47,12 +59,22 @@ module DoubleDouble
       # @return [Money] The value balance of all accounts
       def trial_balance
         raise(NoMethodError, "undefined method 'trial_balance'") unless self == DoubleDouble::Account
-        Asset.balance - (Liability.balance + Equity.balance + Revenue.balance - Expense.balance)
+        assets.balance - (liabilities.balance + equities.balance + revenues.balance - expenses.balance)
       end
-      
+
+      def all
+        super.extending AccountCollectionExtension
+      end
+
+      def type_scope klass
+        rel = where(type: klass.name)
+        rel.instance_variable_set :@klass, klass
+        rel
+      end
+
       def balance
         raise(NoMethodError, "undefined method 'balance'") if self == DoubleDouble::Account
-        accounts_balance = self.all.inject(Money.new(0)) {|sum, acct| acct.contra ? (sum - acct.balance) : (sum + acct.balance)}
+        self.all.balance
       end
 
       def named account_name
@@ -70,6 +92,10 @@ module DoubleDouble
 
     def debits_balance(hash = {})
       side_balance(true, hash)
+    end
+
+    def currency
+      chart_of_accounts.present? ? chart_of_accounts.currency : Money.default_currency
     end
 
     protected

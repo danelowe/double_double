@@ -5,6 +5,7 @@ require 'monetize'
 require 'double_double/version'
 
 # Accounts
+require 'double_double/chart_of_accounts'
 require 'double_double/account'
 require 'double_double/normal_credit_account'
 require 'double_double/normal_debit_account'
