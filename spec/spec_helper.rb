@@ -4,6 +4,14 @@ require 'factory_girl'
 
 require 'pry'
 
+#Define some example exchange rates
+Money.add_rate('NZD', 'USD', 0.85)
+Money.add_rate('USD', 'NZD', 1.0/0.85)
+Money.add_rate('NZD', 'GBP', 0.50)
+Money.add_rate('GBP', 'NZD', 1.0/0.50)
+Money.add_rate('GBP', 'USD', 1.70)
+Money.add_rate('USD', 'GBP', 1.0/1.70)
+
 # Create an in-memory database and run our minimal migration
 ActiveRecord::Base.establish_connection(:adapter => "sqlite3", :database => ":memory:")
 ActiveRecord::Migration.verbose = false

@@ -52,7 +52,7 @@ module DoubleDouble
       
       def balance
         raise(NoMethodError, "undefined method 'balance'") if self == DoubleDouble::Account
-        accounts_balance = self.all.inject(Money.new(0)) {|sum, acct| acct.contra ? (sum - acct.balance) : (sum + acct.balance)}
+        self.all.map{|acct| acct.contra ? -acct.balance : acct.balance}.reduce(:+) || Money.new(0)
       end
 
       def named account_name
@@ -81,9 +81,15 @@ module DoubleDouble
         a = a.by_context(hash[:context])                   if hash.has_key? :context
         a = a.by_subcontext(hash[:subcontext])             if hash.has_key? :subcontext
         a = a.by_accountee(hash[:accountee])               if hash.has_key? :accountee
-        a = a.by_entry_type(hash[:entry_type]) if hash.has_key? :entry_type
-        Money.new(a.sum(:amount_cents))
+        a = a.by_entry_type(hash[:entry_type])             if hash.has_key? :entry_type
+        a = a.group(:currency)
+        sums = a.sum(:amount_cents)
+        if (sums.count > 1) && !DoubleDouble.configuration.allow_currency_conversion
+          raise "Account has multiple currencies. Set allow_currency_conversion to allow approx conversion in balances"
+        end
+        sums.map{|currency, amount| Money.new(amount, currency)}.reduce(:+) || Money.new(0)
       end
+
       # The balance method that derived Accounts utilize.
       #
       # Nornal Debit Accounts:
@@ -97,10 +103,14 @@ module DoubleDouble
       # @return [Money] The balance of the account instance
       def child_account_balance(is_normal_debit_account, hash = {})
         raise(NoMethodError, "undefined method 'balance'") if self == DoubleDouble::Account
+        debits = debits_balance(hash)
+        credits = credits_balance(hash)
+        debits = Money.new(0, credits.currency) if debits.fractional == 0
+        diff = debits - credits
         if (is_normal_debit_account && contra) || !(is_normal_debit_account || contra)
-          credits_balance(hash) - debits_balance(hash)
+           - diff
         else
-          debits_balance(hash) - credits_balance(hash)
+          diff
         end
       end
   end
