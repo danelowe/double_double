@@ -29,8 +29,6 @@ module DoubleDouble
       Account.trial_balance.should be_kind_of(Money)
     end
 
-
-
     it "should report a trial balance of 0 with correct entries (with a contrived example of entries)" do
       # credit accounts
       FactoryGirl.create(:liability, name: 'liability acct')
@@ -76,6 +74,5 @@ module DoubleDouble
           credits: [{account: 600,     amount: 100_000}])
       Account.trial_balance.should eq(0)
     end
-
   end
 end

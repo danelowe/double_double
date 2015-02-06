@@ -193,17 +193,6 @@ How much cash do we have left?
 DoubleDouble::Account.named('Cash').balance.to_s           # => "0.00"
 ```
 
-## Multiple Currencies in an Account
-By default, an exception will be raised if a balance is calculated where there is more that one currency in the amounts.
-Allowing a balance to be calculated across different currencies is probably a bad idea, but it can be enabled. 
-
-```ruby
-DoubleDouble.configure do |config|
-    config.allow_currency_conversion = true
-end
-```
-
-**Note:** This can allow very unpredictable results, and a lot of rounding errors. 
 
 ## Tests
 

@@ -22,21 +22,3 @@ require 'double_double/debit_amount'
 # entries
 require 'double_double/entry'
 require 'double_double/entry_type'
-
-module DoubleDouble
-  class Configuration
-    attr_accessor :allow_currency_conversion
-
-    def initialize
-      self.allow_currency_conversion = false
-    end
-  end
-
-  def self.configuration
-    @configuration ||=  Configuration.new
-  end
-
-  def self.configure
-    yield(configuration) if block_given?
-  end
-end
