@@ -24,6 +24,8 @@ module DoubleDouble
     self.table_name = 'double_double_entries'
 
     belongs_to :entry_type
+    belongs_to :chart_of_accounts
+
     belongs_to :initiator,  polymorphic: true
 
     has_many :credit_amounts
@@ -39,6 +41,12 @@ module DoubleDouble
     scope :by_entry_type, ->(tt) { where(entry_type: tt)}
     scope :by_initiator, ->(i) { where(initiator_id: i.id, initiator_type: i.class.base_class) }
 
+    delegate :currency, to: :chart_of_accounts, allow_nil: true
+
+    class << self
+      alias :build :new
+    end
+
     # Simple API for building a entry and associated debit and credit amounts
     #
     # @example
@@ -51,20 +59,12 @@ module DoubleDouble
     #       {account: "Sales Tax Payable",   amount:  5}])
     #
     # @return [DoubleDouble::Entry] A Entry with built credit and debit objects ready for saving
-    def self.build args
-      args.merge!({credits: args[:debits], debits: args[:credits]}) if args[:reversed]
-      t = Entry.new()
-      t.description      = args[:description]
-      t.entry_type = args[:entry_type] if args.has_key? :entry_type
-      t.initiator        = args[:initiator]        if args.has_key? :initiator
-      add_amounts_to_entry(args[:debits],  t, true)
-      add_amounts_to_entry(args[:credits], t, false)
-      t
-    end
-
-    def self.create! args
-      t = build args
-      t.save!
+    def initialize(attributes = {}, options = {})
+      attributes.merge!({credits: attributes[:debits], debits: attributes[:credits]}) if attributes[:reversed]
+      r = super attributes.reject{|k, v| [:credits, :debits, :reversed].include?(k)}
+      add_amounts(attributes[:debits], true)
+      add_amounts(attributes[:credits], false)
+      r
     end
 
     def entry_type
@@ -88,25 +88,23 @@ module DoubleDouble
       end
 
       def difference_of_amounts
-        credit_amount_total = credit_amounts.inject(Money.new(0)) {|sum, credit_amount| sum + credit_amount.amount}
-        debit_amount_total  = debit_amounts.inject(Money.new(0))  {|sum,  debit_amount| sum +  debit_amount.amount}
-        credit_amount_total - debit_amount_total
+        credit_amounts.balance - debit_amounts.balance
       end
 
       # Assist entry building
 
-      def self.add_amounts_to_entry amounts, entry, add_to_debits = true
+      def add_amounts amounts, add_to_debits = true
         return if amounts.nil? || amounts.count == 0
         amounts.each do |amt|
-          amount_parameters = prepare_amount_parameters amt.merge!({entry: entry})
+          amount_parameters = prepare_amount_parameters amt.merge!({entry: self})
           new_amount = add_to_debits ? DebitAmount.new : CreditAmount.new
           new_amount.assign_attributes(amount_parameters)
-          entry.debit_amounts << new_amount  if add_to_debits
-          entry.credit_amounts << new_amount unless add_to_debits
+          self.debit_amounts << new_amount  if add_to_debits
+          self.credit_amounts << new_amount unless add_to_debits
         end
       end
 
-      def self.prepare_amount_parameters args
+      def prepare_amount_parameters args
         account = args[:account].is_a?(Integer) ? Account.numbered(args[:account]) : Account.named(args[:account])
         prepared_params = { account: account, entry: args[:entry], amount: args[:amount]}
         prepared_params.merge!({accountee:  args[:accountee]})  if args.has_key? :accountee

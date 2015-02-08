@@ -25,6 +25,7 @@ ActiveRecord::Migration.verbose = false
     add_index :double_double_accounts, :chart_of_accounts_id
 
     create_table :double_double_entries do |t|
+      t.references :chart_of_accounts
       t.string :description
       t.references :initiator,        polymorphic: true
       t.references :entry_type
@@ -33,6 +34,7 @@ ActiveRecord::Migration.verbose = false
     add_index :double_double_entries, :initiator_id
     add_index :double_double_entries, :initiator_type
     add_index :double_double_entries, :entry_type_id
+    add_index :double_double_entries, :chart_of_accounts_id
 
     create_table :double_double_entry_types do |t|
       t.string :description,    null: false
@@ -48,7 +50,6 @@ ActiveRecord::Migration.verbose = false
       t.references :accountee,  polymorphic: true
       
       t.integer :amount_cents, limit: 8, default: 0, null: false
-      t.string  :currency
     end
     add_index :double_double_amounts, :context_id
     add_index :double_double_amounts, :context_type

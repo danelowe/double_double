@@ -63,7 +63,6 @@ class CreateDoubleDouble < ActiveRecord::Migration
       t.references :accountee,  polymorphic: true
       
       t.integer :amount_cents, limit: 8, default: 0, null: false
-      t.string  :currency
     end
     add_index :double_double_amounts, :context_id
     add_index :double_double_amounts, :context_type

@@ -1,7 +1,11 @@
 module DoubleDouble
   module AccountCollectionExtension
     def balance
-      inject(Money.new(0)) {|sum, acct| acct.contra ? (sum - acct.balance) : (sum + acct.balance)}
+      inject(Money.new(0, currency)) {|sum, acct| acct.contra ? (sum - acct.balance) : (sum + acct.balance)}
+    end
+
+    def currency
+      @association ? @association.owner.currency : Money.default_currency
     end
   end
   # The Account class represents accounts in the system. Each account must be subclassed as one of the following types:
@@ -43,46 +47,35 @@ module DoubleDouble
     belongs_to :chart_of_accounts
 
     validates_presence_of :type, :name, :number
-    validates_uniqueness_of :name, :number
+    validates_uniqueness_of :name, :number, scope: :chart_of_accounts_id
     validates_length_of :name, :minimum => 1
 
-    scope :assets,      -> { type_scope Asset }
-    scope :liabilities, -> { type_scope Liability }
-    scope :equities,    -> { type_scope Equity }
-    scope :revenues,    -> { type_scope Revenue }
-    scope :expenses,    -> { type_scope Expense }
-
     class << self
+
+      def all
+        super.extending AccountCollectionExtension
+      end
+
       # The trial balance of all accounts in the system. This should always equal zero,
       # otherwise there is an error in the system.
       #
       # @return [Money] The value balance of all accounts
       def trial_balance
         raise(NoMethodError, "undefined method 'trial_balance'") unless self == DoubleDouble::Account
-        assets.balance - (liabilities.balance + equities.balance + revenues.balance - expenses.balance)
-      end
-
-      def all
-        super.extending AccountCollectionExtension
-      end
-
-      def type_scope klass
-        rel = where(type: klass.name)
-        rel.instance_variable_set :@klass, klass
-        rel
+        ChartOfAccounts.new.trial_balance
       end
 
       def balance
         raise(NoMethodError, "undefined method 'balance'") if self == DoubleDouble::Account
-        self.all.balance
+        where(chart_of_accounts_id: nil).balance
       end
 
       def named account_name
-        self.where(name: account_name.to_s).first
+        find_by(name: account_name.to_s)
       end
 
       def numbered account_number
-        self.where(number: account_number.to_i).first
+        find_by(number: account_number.to_i)
       end
     end
 
@@ -101,18 +94,17 @@ module DoubleDouble
     protected
 
       def side_balance(is_debit, hash)
-        # .scoped has been removed in rails 4.1
-        a = is_debit ? DoubleDouble::DebitAmount.where(nil): DoubleDouble::CreditAmount.where(nil)
-        a = a.where(account_id: self.id)
+        a = is_debit ? debit_amounts : credit_amounts
         a = a.by_context(hash[:context])                   if hash.has_key? :context
         a = a.by_subcontext(hash[:subcontext])             if hash.has_key? :subcontext
         a = a.by_accountee(hash[:accountee])               if hash.has_key? :accountee
         a = a.by_entry_type(hash[:entry_type]) if hash.has_key? :entry_type
-        Money.new(a.sum(:amount_cents))
+        a.balance
       end
+
       # The balance method that derived Accounts utilize.
       #
-      # Nornal Debit Accounts:
+      # Normal Debit Accounts:
       # if contra { credits_balance(hash) - debits_balance(hash)  }
       # else      { debits_balance(hash)  - credits_balance(hash) }
       #
