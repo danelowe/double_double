@@ -105,7 +105,8 @@ module DoubleDouble
       end
 
       def prepare_amount_parameters args
-        account = args[:account].is_a?(Integer) ? Account.numbered(args[:account]) : Account.named(args[:account])
+        accounts = chart_of_accounts ?  chart_of_accounts.accounts : Account.where(chart_of_accounts_id: nil)
+        account = args[:account].is_a?(Integer) ? accounts.numbered(args[:account]) : accounts.named(args[:account])
         prepared_params = { account: account, entry: args[:entry], amount: args[:amount]}
         prepared_params.merge!({accountee:  args[:accountee]})  if args.has_key? :accountee
         prepared_params.merge!({context:    args[:context]})    if args.has_key? :context
