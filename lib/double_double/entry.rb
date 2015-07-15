@@ -13,7 +13,7 @@ module DoubleDouble
   #   debit_amount = DoubleDouble::DebitAmount.new(account: 'cash', amount: 1000)
   #   credit_amount = DoubleDouble::CreditAmount.new(account: 'accounts_receivable', amount: 1000)
   #
-  #   entry = DoubleDouble::Entry.new(description: "Receiving payment on an invoice")
+  #   entry = DoubleDouble::Entry.new(description: "Receiving payment on an invoice", notes: "Caused by a crash")
   #   entry.debit_amounts << debit_amount
   #   entry.credit_amounts << credit_amount
   #   entry.save
@@ -26,7 +26,8 @@ module DoubleDouble
     belongs_to :entry_type
     belongs_to :chart_of_accounts
 
-    belongs_to :initiator,  polymorphic: true
+    belongs_to :initiator, polymorphic: true
+    belongs_to :owner, polymorphic: true
 
     has_many :credit_amounts
     has_many :debit_amounts
@@ -52,6 +53,7 @@ module DoubleDouble
     # @example
     #   entry = DoubleDouble::Entry.build(
     #     description: "Sold some widgets",
+    #     notes: "Manual entry notes",
     #     debits: [
     #       {account: "Accounts Receivable", amount: 50, context: @some_active_record_object}], 
     #     credits: [

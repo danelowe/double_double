@@ -18,6 +18,7 @@ module DoubleDouble
       -> {
         Entry.create!(
           description: 'spec entry 01',
+          notes: 'notes entry 01',
           debits:  [{account: 'Cash_11', amount: 10}],
           credits: [{account: 'Loan_12', amount:  9},
                     {account: 'Loan_12', amount:  1}])
@@ -28,6 +29,7 @@ module DoubleDouble
       -> {
         Entry.build(
           description: 'spec entry 01',
+          notes: 'notes entry 01',
           debits:  [{account: 'Cash_11', amount: 100_000}],
           credits: [{account: 'Loan_12', amount: 100_000}])
       }.should change(DoubleDouble::Entry, :count).by(0)

@@ -27,12 +27,16 @@ ActiveRecord::Migration.verbose = false
     create_table :double_double_entries do |t|
       t.references :chart_of_accounts
       t.string :description
+      t.string :notes
       t.references :initiator,        polymorphic: true
+      t.references :owner,            polymorphic: true
       t.references :entry_type
       t.timestamps
     end
     add_index :double_double_entries, :initiator_id
     add_index :double_double_entries, :initiator_type
+    add_index :double_double_entries, :owner_id
+    add_index :double_double_entries, :owner_type
     add_index :double_double_entries, :entry_type_id
     add_index :double_double_entries, :chart_of_accounts_id
 
